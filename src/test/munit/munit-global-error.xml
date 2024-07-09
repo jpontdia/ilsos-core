@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+    xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+
+	<http:request-config name="http_test_local_configuration">
+        <http:request-connection host="0.0.0.0" port="${httpsport}" protocol="${httpprotocol}">
+                <tls:context >
+                    <tls:trust-store type="pkcs12" 
+                        path="${jks.path}"
+                        password="${jks.keypassword}" 
+                        insecure="true"/>
+                </tls:context>
+        	</http:request-connection>
+	</http:request-config>
+
+	<munit:config name="error-scenarios.xml" minMuleVersion="4.7.0" />
+
+	<munit:test name="apikit-status-200-ok">
+
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:execution>
+			<logger doc:name="start" level="INFO" message="Test apikit 200 scenario" />
+
+			<http:request doc:name="POST" method="POST"
+				config-ref="http_test_local_configuration" path="/api/organization">
+				<http:body><![CDATA[#[output application/json
+					---
+					{
+						"name": "Doe Enterprise",
+						"value": "Silver"
+					}]]]></http:body>
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"UserID" : "MyUserId",
+						"Content-Type" : "application/json"
+					}]]]>
+				</http:headers>
+				<http:response-validator>
+					<http:success-status-code-validator values="200" />
+				</http:response-validator>
+			</http:request>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;   message: "Result",&#10; payload: payload&#10;}]' />
+
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals
+				actual="#[attributes.statusCode]" expected="#[200]"
+				message="The status code must be 200" doc:name="status 200" />
+		</munit:validation>
+
+	</munit:test>
+
+
+	<munit:test name="apikit-status-500-any-error">
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Mock when"
+				processor="apikit:router">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="testapi-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:error typeId="ANY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+
+		<munit:execution>
+			<logger doc:name="start" level="INFO" message="Test apikit 500 scenario" />
+
+			<http:request doc:name="POST" method="POST"
+				config-ref="http_test_local_configuration" path="/api/organization">
+				<http:body><![CDATA[#[output application/json
+					---
+					{
+						"name": "Doe Enterprise",
+						"value": "Silver"
+					}]]]>
+				</http:body>
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"UserID" : "MyUserId",
+						"Content-Type" : "application/json"
+					}]]]>
+				</http:headers>
+				<http:response-validator>
+					<http:success-status-code-validator
+						values="500" />
+				</http:response-validator>
+			</http:request>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;   message: "Result",&#10; payload: payload&#10;}]' />
+
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals
+				actual="#[attributes.statusCode]" expected="#[500]"
+				message="The status code must be 500" doc:name="status 500" />
+		</munit:validation>
+	</munit:test>
+
+
+	<munit:test name="apikit-status-400-bad-request">
+
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+            <munit:enable-flow-source value="test-global-error-console" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:execution>
+			<logger doc:name="start" level="INFO" message="Test apikit 400 scenario" />
+
+			<http:request doc:name="Connect" method="POST"
+				config-ref="http_test_local_configuration" path="/api/organization">
+				<http:body><![CDATA[This is a test]]></http:body>
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"Content-Type" : "application/json"
+					}]]]>
+				</http:headers>
+				<http:uri-params><![CDATA[#[output application/java
+					---
+					{
+						"customerId" : "a138E000000N9dr"
+					}]]]>
+				</http:uri-params>
+				<http:response-validator>
+					<http:success-status-code-validator values="400" />
+				</http:response-validator>
+			</http:request>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "Result",&#10;	payload: payload&#10;}]' />
+
+		</munit:execution>
+
+		<munit:validation>
+			<munit-tools:assert-equals
+				doc:name="status 400" actual="#[attributes.statusCode]"
+				expected="#[400]" message="The status code must be 405" />
+
+			<munit-tools:assert-that
+				doc:name="verify message"
+				expression='#[payload.message contains "${messages.apikit-400}"]'
+				is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+	<munit:test name="apikit-status-404-not-found">
+
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+            <munit:enable-flow-source value="test-global-error-console" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:execution>
+
+			<logger doc:name="start" level="INFO" message="Test apikit 404 scenario" />
+
+			<http:request doc:name="Connect" method="POST"
+				config-ref="http_test_local_configuration" path="/api/fake">
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"Content-Type" : "application/json"
+					}]]]>
+				</http:headers>
+				<http:uri-params><![CDATA[#[output application/java
+					---
+					{
+						"customerId" : "a138E000000N9dr"
+					}]]]>
+				</http:uri-params>
+				<http:response-validator>
+					<http:success-status-code-validator values="404" />
+				</http:response-validator>
+			</http:request>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "Result",&#10;	payload: payload&#10;}]' />
+
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals
+				doc:name="status 404" actual="#[attributes.statusCode]"
+				expected="#[404]" message="The status code must be 404" />
+
+			<munit-tools:assert-that
+				doc:name="verify message"
+				expression='#[payload.message contains "${messages.apikit-404}"]'
+				is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+	<munit:test name="apikit-status-405-method-not-allowed">
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+            <munit:enable-flow-source value="test-global-error-console" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:execution>
+
+			<logger doc:name="start" level="INFO" message="Test apikit 405 scenario" />
+
+			<http:request doc:name="Connect" method="OPTIONS"
+				config-ref="http_test_local_configuration" path="/api/organization">
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"Content-Type" : "application/json"
+					}]]]>
+				</http:headers>
+				<http:uri-params><![CDATA[#[output application/java
+					---
+					{
+						"customerId" : "a138E000000N9dr"
+					}]]]>
+				</http:uri-params>
+				<http:response-validator>
+					<http:success-status-code-validator values="405" />
+				</http:response-validator>
+			</http:request>
+
+			<logger level="INFO" doc:name="result"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;   message: "Result",&#10; payload: payload&#10;}]' />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals
+				actual="#[attributes.statusCode]" expected="#[405]"
+				message="The status code must be 405" doc:name="status 405" />
+			<munit-tools:assert-that
+				doc:name="verify message"
+				expression='#[payload.message contains "${messages.apikit-405}"]'
+				is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+
+	<munit:test name="apikit-status-406-not-accepted">
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+            <munit:enable-flow-source value="test-global-error-console" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Mock when" processor="apikit:router">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="testapi-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:error typeId="APIKIT:NOT_ACCEPTABLE" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<logger doc:name="start" level="INFO" message="Test apikit 406 scenario" />
+
+			<http:request doc:name="POST" method="POST"
+				config-ref="http_test_local_configuration" path="/api/organization">
+				<http:body><![CDATA[#[output application/json
+					---
+					{
+					"name": "Doe Enterprise",
+					"value": "Silver"
+					}]]]>
+				</http:body>
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"Accept" : "fake"
+					}]]]>
+				</http:headers>
+				<http:response-validator>
+					<http:success-status-code-validator values="406" />
+				</http:response-validator>
+			</http:request>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0 output application/json --- { message: "Result", payload: payload}]' />
+
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals
+				doc:name="status 406" actual="#[attributes.statusCode]"
+				expected="#[406]" message="The status code must be 406" />
+
+			<munit-tools:assert-that
+				doc:name="verify message"
+				expression='#[payload.message contains "${messages.apikit-406}"]'
+				is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+
+	<munit:test name="apikit-status-415-unsupported-media">
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+            <munit:enable-flow-source value="test-global-error-console" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:execution>
+			<logger doc:name="start" level="INFO" message="Test apikit 415 scenario" />
+
+			<http:request doc:name="POST" method="POST"
+				config-ref="http_test_local_configuration" path="/api/organization">
+				<http:body><![CDATA[#[{
+					"name": "Doe Enterprise",
+					"value": "Silver"
+					}]]]>
+				</http:body>
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"UserID" : "Value",
+						"Content-Type" : "fake-format"
+					}]]]>
+				</http:headers>
+				<http:response-validator>
+					<http:success-status-code-validator values="415" />
+				</http:response-validator>
+			</http:request>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;   message: "Result",&#10; payload: payload&#10;}]' />
+
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals
+				doc:name="status 415" actual="#[attributes.statusCode]"
+				expected="#[415]" message="The status code must be 415" />
+
+			<munit-tools:assert-that
+				doc:name="verify message"
+				expression='#[payload.message contains "${messages.apikit-415}"]'
+				is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+
+	<munit:test name="apikit-status-501">
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+            <munit:enable-flow-source value="test-global-error-console" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Mock when"
+				processor="apikit:router">
+
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="testapi-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:error
+						typeId="APIKIT:NOT_IMPLEMENTED" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<logger doc:name="start" level="INFO" message="Test apikit 501 scenario" />
+
+			<http:request method="POST" doc:name="POST"
+				config-ref="http_test_local_configuration" path="/api/organization">
+				<http:body><![CDATA[#[output application/json
+					---
+					{
+					"name": "Doe Enterprise",
+					"value": "Silver"
+					}]]]>
+				</http:body>
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"UserID" : "MyUserId",
+						"Content-Type" : "application/json"
+					}]]]>
+				</http:headers>
+				<http:response-validator>
+					<http:success-status-code-validator
+						values="501" />
+				</http:response-validator>
+			</http:request>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;   message: "Result",&#10; payload: payload&#10;}]' />
+
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals
+				actual="#[attributes.statusCode]" expected="#[501]"
+				message="The status code must be 501" doc:name="status 501" />
+			<munit-tools:assert-that
+				doc:name="verify message"
+				expression='#[payload.message contains "${messages.apikit-501}"]'
+				is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+
+	<munit:test name="test-console">
+		<munit:enable-flow-sources>
+			<munit:enable-flow-source value="test-global-error-main" />
+            <munit:enable-flow-source value="test-global-error-console" />
+			<munit:enable-flow-source value="post:\organization:application\json:testapi-config" />
+		</munit:enable-flow-sources>
+		<munit:execution>
+			<logger doc:name="start" level="INFO" message="Test console" />
+
+			<http:request doc:name="Console" method="GET"
+				path="/console" config-ref="http_test_local_configuration">
+				<http:headers><![CDATA[#[output application/java
+					---
+					{
+						"Content-Type" : "text/html"
+					}]]]>
+				</http:headers>
+			</http:request>
+
+			<ee:transform doc:name="Transform Message">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+						output text
+						---
+						payload as String]]>
+					</ee:set-payload>
+				</ee:message>
+			</ee:transform>
+
+			<logger doc:name="result" level="INFO"
+				message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;   message: "Result",&#10; payload: payload&#10;}]' />
+		</munit:execution>
+
+		<munit:validation>
+			<munit-tools:assert-that
+				doc:name="Assert that" is="#[MunitTools::notNullValue()]"
+				expression='#[payload contains "APIkit Console"]'
+				message="The APIKit is not correctly configured" />
+		</munit:validation>
+	</munit:test>
+
+</mule>

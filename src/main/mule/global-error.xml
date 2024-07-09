@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" 
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	
+	<error-handler name="global-error-handler">
+
+		<on-error-propagate enableNotifications="false" logException="true" type="APIKIT:BAD_REQUEST" >
+			<ee:transform doc:name="Response" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{
+							correlationId: correlationId,
+							status: 400,
+							message: "${messages.apikit-400}",
+							(description: error.description) if (p('globalerror.description'))
+						}]]>
+					</ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="httpStatus" ><![CDATA[400]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
+
+		<on-error-propagate enableNotifications="false" logException="true" type="APIKIT:NOT_FOUND" >
+			<ee:transform doc:name="Response">
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{
+							correlationId: correlationId,
+							status: 404,
+							message: "${messages.apikit-404}"
+						}]]>
+					</ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="httpStatus" ><![CDATA[404]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
+				
+		<on-error-propagate enableNotifications="false" logException="true" type="APIKIT:METHOD_NOT_ALLOWED" >
+			
+			<ee:transform doc:name="Response" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{
+							correlationId: correlationId,
+							status: 405,
+							message: "${messages.apikit-405}"
+						}]]>
+					</ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="httpStatus" ><![CDATA[405]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
+		
+		
+		<on-error-propagate enableNotifications="false" logException="true" type="APIKIT:NOT_ACCEPTABLE" >
+			<ee:transform doc:name="Response" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{
+							correlationId: correlationId,
+							status: 406,
+							message: "${messages.apikit-406}"
+						}]]>
+					</ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="httpStatus" ><![CDATA[406]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
+		
+		<on-error-propagate enableNotifications="false" logException="true" type="APIKIT:UNSUPPORTED_MEDIA_TYPE" >
+			<ee:transform doc:name="Response" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{
+							correlationId: correlationId,
+							status: 415,
+							message: "${messages.apikit-415}"
+						}]]>
+					</ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="httpStatus" ><![CDATA[415]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
+		
+		<on-error-propagate enableNotifications="false" logException="true" type="APIKIT:NOT_IMPLEMENTED" >
+			<ee:transform doc:name="Response" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{
+							correlationId: correlationId,
+							status: 501,
+							message: "${messages.apikit-501}"
+						}]]>
+					</ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="httpStatus" ><![CDATA[501]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
+
+		<on-error-propagate enableNotifications="false" logException="true" type="ANY" >
+			<set-variable value="500" doc:name="status 500" variableName="httpStatus" />
+			<ee:transform doc:name="Response" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+						output application/json
+						---
+						{
+							correlationId: correlationId,
+							status: 500,
+							message: "${messages.backend-error}",
+							(description: error.description) if (p('globalerror.description'))
+						}]]>
+					</ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="httpStatus" ><![CDATA[500]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</on-error-propagate>
+
+	</error-handler>
+</mule>

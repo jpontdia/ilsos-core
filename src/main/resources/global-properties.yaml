@@ -1,0 +1,38 @@
+# Default environment
+env: local
+
+# Java Keystore for SSL and TLS-Context
+jks:
+  alias: "myAlias"
+  path: "myJksPath"
+  keypassword: "myKeypassword"
+
+# Listening port of the serivce
+httpprotocol: "HTTPS"
+httpport: "8081"
+httpsport: "8082"
+
+# Global error
+globalerror:
+  description: "false"
+
+# The project artifact and version
+project:
+  artifact: "${project.artifactId}"
+  version: "${project.version}"
+
+# Service messages
+messages:
+  backend-error: "There was an internal problem in the application"
+  apikit-400: "Bad request"
+  apikit-404: "Resource not found"
+  apikit-405: "Method not allowed"
+  apikit-406: "Not acceptable"
+  apikit-415: "Unsupported media type"
+  apikit-501: "Not Implemented"
+  one-query-filter: "At least one query filter must be sent other than maxRecords or pagination parameters"
+  record-delete-success: "The record was deleted successfully"
+  record-delete-error: "The record cannot be deleted; it doesn´t exist or has relationships with other resources"
+  record-create-success: "The record was created successfully"
+  record-create-error: "There was a problem while creating the record"
+  record-exists: "The record already exists"

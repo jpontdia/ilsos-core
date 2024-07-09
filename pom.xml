@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>078efef1-d139-48ed-92f5-f8d4a0592374</groupId>
+		<artifactId>ilsos-pom</artifactId>
+		<version>1.0.15</version>
+		<relativePath/>
+	</parent>
+
+	<groupId>078efef1-d139-48ed-92f5-f8d4a0592374</groupId>
+	<artifactId>ilsos-core</artifactId>
+	<version>1.0.1</version>
+	<packaging>mule-application</packaging>
+
+	<name>ilsos-core</name>
+
+	<properties>
+		<!-- Exchange documentation -->
+		<fields key="sourceCode">https://github.com/jpontdia/ilsos-core</fields>
+		<categories key="Asset type">Configuration</categories>
+		<tags>Configuration, CICS, DB2</tags>
+
+		<!-- Mulesoft Application Type-->
+		<type>mule-plugin</type>
+	</properties>
+
+	<dependencies>
+		<!--
+		<dependency>
+			<groupId>org.mule.connectors</groupId>
+			<artifactId>mule-http-connector</artifactId>
+			<version>1.9.3</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
+		-->
+	</dependencies>
+</project>
